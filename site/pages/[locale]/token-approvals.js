@@ -1,3 +1,4 @@
+import Big from 'big.js'
 import { useWeb3React } from '@web3-react/core'
 import { useRouter } from 'next/router'
 import { useTranslations } from 'next-intl'
@@ -14,6 +15,25 @@ import { useTokenInput } from '../../hooks/useTokenInput'
 import { fromUnit, toUnit } from '../../utils'
 import CallToAction from '../../components/CallToAction'
 
+const decimalRegex = /^(([1-9][0-9]*)?[0-9](\.[0-9]*)?|\.[0-9]+)$/
+const infiniteSymbol = '∞'
+
+const isInfinite = function (allowance, token) {
+  if (!allowance || !token) {
+    return false
+  }
+
+  if (allowance === infiniteSymbol) {
+    return true
+  }
+
+  if (decimalRegex.test(allowance)) {
+    return new Big(allowance).gt(token.totalSupply)
+  }
+
+  return false
+}
+
 const useAllowanceInput = function (
   token,
   spender,
@@ -23,7 +43,6 @@ const useAllowanceInput = function (
 ) {
   const { account, active, chainId } = useWeb3React()
   const { tokenApprovals } = useContext(PureContext)
-
   const disabled = !token || !spender || !active || !tokenApprovals
 
   useEffect(
@@ -42,7 +61,11 @@ const useAllowanceInput = function (
       tokenApprovals
         .allowance(token.address, account, spender.address)
         .then(function (currentAllowance) {
-          setAllowance(fromUnit(currentAllowance, token.decimals))
+          setAllowance(
+            isInfinite(currentAllowance, token)
+              ? infiniteSymbol
+              : fromUnit(currentAllowance, token.decimals)
+          )
         })
         .catch(function (err) {
           setFeedback('error', err.message)
@@ -52,9 +75,10 @@ const useAllowanceInput = function (
   )
 
   const handleChange = function (e) {
-    const re = /^(([1-9][0-9]*)?[0-9](\.[0-9]*)?|\.[0-9]+)$/ // Decimal number
-    if (e.target.value === '' || re.test(e.target.value)) {
-      setAllowance(e.target.value)
+    if (e.target.value === '' || decimalRegex.test(e.target.value)) {
+      setAllowance(
+        isInfinite(e.target.value, token) ? infiniteSymbol : e.target.value
+      )
     }
   }
 
@@ -92,7 +116,6 @@ const useFeedback = function () {
 
 const TokenApprovalsForm = function () {
   const t = useTranslations()
-  const { account } = useWeb3React()
   const { tokenApprovals } = useContext(PureContext)
   const { query } = useRouter()
 
@@ -103,14 +126,15 @@ const TokenApprovalsForm = function () {
   const spenderInput = useTokenInput(query.spender, setSpender, true)
 
   const [allowance, setAllowance] = useState('')
+  const [feedback, setFeedback] = useFeedback()
+
   const allowanceInput = useAllowanceInput(
     token,
     spender,
     allowance,
-    setAllowance
+    setAllowance,
+    setFeedback
   )
-
-  const [feedback, setFeedback] = useFeedback()
 
   // Depending on the progress state of the approval operation, set the feedback
   // color and message.
@@ -133,23 +157,13 @@ const TokenApprovalsForm = function () {
   const approveButton = useFormButton(
     approveDisabled,
     () =>
-      tokenApprovals.approve(
-        token.address,
-        spender.address,
-        toUnit(allowance, token.decimals)
-      ),
-    onProgress
-  )
-  const infiniteButton = useFormButton(
-    approveDisabled,
-    () =>
-      tokenApprovals
-        .approveInfinite(token.address, spender.address)
-        .then(() =>
-          tokenApprovals
-            .allowance(token.address, account, spender.address)
-            .then(setAllowance)
-        ),
+      isInfinite(allowance, token)
+        ? tokenApprovals.approveInfinite(token.address, spender.address)
+        : tokenApprovals.approve(
+            token.address,
+            spender.address,
+            toUnit(allowance, token.decimals)
+          ),
     onProgress
   )
 
@@ -175,12 +189,19 @@ const TokenApprovalsForm = function () {
         {...allowanceInput}
       />
 
-      <p
-        className="text-orange-950 hover:text-orange-500 cursor-pointer text-right"
-        {...infiniteButton}
-      >
-        {t('approve-infinite')}
-      </p>
+      <div className="flex justify-end">
+        <button
+          disabled={approveDisabled}
+          onClick={() => setAllowance(infiniteSymbol)}
+          className={`${
+            !approveDisabled
+              ? 'text-orange-950 hover:text-orange-500 cursor-pointer'
+              : 'text-orange-500 cursor-not-allowed'
+          }`}
+        >
+          {t('allow-infinite')}
+        </button>
+      </div>
 
       <div className="mt-4">
         <CallToAction>
