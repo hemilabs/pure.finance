@@ -7,6 +7,7 @@
     "build": "npm run lerna:run build",
     "deps:check": "npm run lerna:run deps:check",
     "format:check": "prettier --check .",
+    "format:write": "prettier --write .",
     "postinstall": "lerna bootstrap",
     "lerna:run": "lerna run --stream --concurrency 1",
     "lint": "eslint --cache --quiet .",
