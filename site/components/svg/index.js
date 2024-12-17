@@ -11,6 +11,7 @@ import curlybrackets from './CurlyBrackets'
 import discord from './Discord'
 import error from './Error'
 import etherscan from './Etherscan'
+import exclamation from './ExclamationMark'
 import github from './Github'
 import linkedin from './Linkedin'
 import loading from './Loading'
@@ -35,6 +36,7 @@ const icons = {
   discord,
   error,
   etherscan,
+  exclamation,
   github,
   linkedin,
   loading,

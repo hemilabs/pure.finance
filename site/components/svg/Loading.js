@@ -13,7 +13,7 @@ const LoadingIcon = props => (
       cy="50"
       fill="none"
       r="33"
-      stroke="#4138ac"
+      stroke="#FF6C15"
       strokeDasharray="155.50883635269477 53.83627878423159"
       strokeWidth="5"
     >

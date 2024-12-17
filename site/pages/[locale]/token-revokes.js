@@ -11,6 +11,9 @@ import { ExplorerLink } from '../../components/ExplorerLink'
 import TableBox from '../../components/layout/TableBox'
 import ToolsLayout from '../../components/layout/ToolsLayout'
 import { fromUnit } from '../../utils'
+import SvgContainer from '../../components/svg/SvgContainer'
+import Wallet from '../../components/Wallet'
+import { Link } from '../../navigation'
 
 // Comes from doing web3.utils.sha3('Approval(address,address,uint256)')
 const APPROVAL_TOPIC =
@@ -322,6 +325,30 @@ const Token = function ({ address }) {
   return <ExplorerLink address={address} chainId={chainId} text={symbol} />
 }
 
+const Status = function ({ icon, message, children }) {
+  return (
+    <>
+      <tr>
+        <td colSpan={5} className="pb-6 pt-12 text-center">
+          <div className="bg-grayscale-50 border-grayscale-300 m-auto flex h-8 w-8 items-center justify-center rounded-full border">
+            <SvgContainer className="w-5 cursor-pointer" name={icon} />
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td colSpan={5} className="text-center">
+          <h3 className="text-grayscale-500">{message}</h3>
+        </td>
+      </tr>
+      <tr>
+        <td colSpan={5} className="pb-12 pt-4">
+          <div className="flex items-center justify-center">{children}</div>
+        </td>
+      </tr>
+    </>
+  )
+}
+
 const TokenRevokes = function () {
   const { active } = useWeb3React()
   const { erc20 } = useContext(PureContext)
@@ -371,102 +398,77 @@ const TokenRevokes = function () {
       <TableBox
         text={t('utilities-text.token-revokes')}
         title={t('list-and-revoke-token-approvals')}
+        className="shadow-lg"
       >
-        {/* {tokenApprovals.length > 0 && (
-          <section className="flex flex-col">
-            <div className="grid grid-cols-4">
-              <span className="m-auto text-gray-600 font-bold">
-                {t('token')}
-              </span>
-              <span className="hidden m-auto text-gray-600 font-bold md:block">
-                {t('spender-address')}
-              </span>
-              <span className="m-auto text-gray-600 font-bold">
-                {t('allowance')} / {t('balance')}
-              </span>
-              <span className="m-auto text-gray-600 font-bold">
-                {t('actions')}
-              </span>
+        <div className="w-100 md:w-150 overflow-auto lg:w-full">
+          <table className="w-150">
+            <thead>
+              <tr className="bg-slate-50 text-slate-600 border-slate-200 rounded-xl border text-left text-sm">
+                <th className="w-10 px-2 py-4 font-medium">{t('token')}</th>
+                <th className="w-14 font-medium">{t('allowance')}</th>
+                <th className="w-14 font-medium">{t('balance')}</th>
+                <th className="w-24 font-medium">{t('spender-address')}</th>
+                <th className="w-10 font-medium">{t('actions')}</th>
+              </tr>
+            </thead>
+            <tbody>
               {tokenApprovals.map(
                 ({ address, allowance, transactionHash, spender }) => (
-                  <React.Fragment key={transactionHash}>
-                    <Token address={address} />
-                    <div className="hidden my-auto md:block">
-                      <Token address={spender} />
-                    </div>
-                    <div className="my-auto">
+                  <tr className="border-b" key={transactionHash}>
+                    <td className="px-2 py-4">
+                      <Token address={address} />
+                    </td>
+                    <td>
                       <Allowance address={address} data={allowance} />
-                      <span> / </span>
+                    </td>
+                    <td>
                       <Balance address={address} />
-                    </div>
-                    <Button
-                      disabled={!active}
-                      onClick={() => handleRevoke(address, spender)}
-                      width="w-28"
-                    >
-                      {t('revoke')}
-                    </Button>
-                  </React.Fragment>
+                    </td>
+                    <td>
+                      <Token address={spender} />
+                    </td>
+                    <td className="px-2 py-4">
+                      <Button
+                        disabled={!active}
+                        onClick={() => handleRevoke(address, spender)}
+                      >
+                        {t('revoke')}
+                      </Button>
+                    </td>
+                  </tr>
                 )
               )}
-            </div>
-          </section>
-        )} */}
 
-        {tokenApprovals.length > 0 && (
-          <div className="w-100 md:w-150 overflow-scroll lg:w-full">
-            <table className="w-150">
-              <thead className="">
-                <tr className="bg-slate-50 text-slate-600 border-slate-200 rounded-xl border text-left text-sm font-light">
-                  <th className="w-10 px-2 py-4 font-medium">{t('token')}</th>
-                  <th className="w-14 font-medium">{t('allowance')}</th>
-                  <th className="w-14 font-medium">{t('balance')}</th>
-                  <th className="w-24 font-medium">{t('spender-address')}</th>
-                  <th className="w-10 font-medium">{t('actions')}</th>
-                </tr>
-              </thead>
-              <tbody>
-                {tokenApprovals.map(
-                  ({ address, allowance, transactionHash, spender }) => (
-                    <tr className="border-b" key={transactionHash}>
-                      <td className="px-2 py-4">
-                        <Token address={address} />
-                      </td>
-                      <td>
-                        <Allowance address={address} data={allowance} />
-                      </td>
-                      <td>
-                        <Balance address={address} />
-                      </td>
-                      <td>
-                        <Token address={spender} />
-                      </td>
-                      <td className="px-2 py-4">
-                        <Button
-                          className=""
-                          disabled={!active}
-                          onClick={() => handleRevoke(address, spender)}
-                        >
-                          {t('revoke')}
-                        </Button>
-                      </td>
-                    </tr>
-                  )
+              {!active && (
+                <Status icon="exclamation" message={t('connect-to-sync')}>
+                  <Wallet />
+                </Status>
+              )}
+
+              {active && syncStatus === SyncStatus.Syncing && (
+                <Status icon="loading" message={t('syncing-your-approvals')} />
+              )}
+
+              {active && isRevoking && (
+                <Status icon="exclamation" message={t('revoking-approval')} />
+              )}
+
+              {syncStatus === SyncStatus.Error && (
+                <Status icon="error" message={t('generic-error')} />
+              )}
+
+              {active &&
+                tokenApprovals.length === 0 &&
+                syncStatus === SyncStatus.Finished && (
+                  <Status icon="exclamation" message={t('no-approvals')}>
+                    <Link className="text-orange-hemi" href="/token-approvals">
+                      {t('token-approvals')}
+                    </Link>
+                  </Status>
                 )}
-              </tbody>
-            </table>
-          </div>
-        )}
-
-        {!active && <h3>{t('connect-to-sync')}</h3>}
-        {active && syncStatus === SyncStatus.Syncing && (
-          <h3>{t('syncing-your-approvals')}</h3>
-        )}
-        {active && isRevoking && <h3>{t('revoking-approval')}</h3>}
-        {syncStatus === SyncStatus.Error && <h3>{t('generic-error')}</h3>}
-        {tokenApprovals.length === 0 && syncStatus === SyncStatus.Finished && (
-          <p>{t('no-approvals')}</p>
-        )}
+            </tbody>
+          </table>
+        </div>
       </TableBox>
     </ToolsLayout>
   )
